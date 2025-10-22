@@ -101,4 +101,56 @@ const deleteProject = async (req, res) => {
   }
 };
 
-module.exports = { createProject, getProjects, getMonitorScript, getProjectById, deleteProject };
+/**
+ * @desc    Update a project (e.g., rename)
+ * @route   PUT /api/projects/:projectId
+ * @access  Private
+ */
+const updateProject = async (req, res) => {
+  const { projectName } = req.body;
+  const project = await Project.findById(req.params.projectId);
+
+  if (project && project.owner.equals(req.user._id)) {
+    project.projectName = projectName || project.projectName;
+    const updatedProject = await project.save();
+    res.json(updatedProject);
+  } else {
+    res.status(404).json({ message: 'Project not found' });
+  }
+};
+
+/**
+ * @desc    Get stats for a project
+ * @route   GET /api/projects/:projectId/stats
+ * @access  Private
+ */
+const getProjectStats = async (req, res) => {
+    const { projectId } = req.params;
+    const project = await Project.findById(projectId);
+
+    if (!project || !project.owner.equals(req.user._id)) {
+        return res.status(404).json({ message: 'Project not found' });
+    }
+
+    const twentyFourHoursAgo = new Date(Date.now() - 24 * 60 * 60 * 1000);
+    const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000);
+
+    const totalLogs24h = await Log.countDocuments({ projectId, createdAt: { $gte: twentyFourHoursAgo } });
+    const errors1h = await Log.countDocuments({ projectId, type: 'error', createdAt: { $gte: oneHourAgo } });
+    
+    const logTypeCounts = await Log.aggregate([
+        { $match: { projectId: project._id } },
+        { $group: { _id: '$type', count: { $sum: 1 } } }
+    ]);
+
+    const healthScore = totalLogs24h > 0 ? ((1 - (errors1h / totalLogs24h)) * 100).toFixed(0) : 100;
+
+    res.json({
+        totalLogs24h,
+        errors1h,
+        healthScore,
+        logTypeCounts
+    });
+};
+
+module.exports = { createProject, getProjects, getMonitorScript, getProjectById, deleteProject, updateProject, getProjectStats };

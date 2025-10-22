@@ -4,7 +4,7 @@ const dotenv = require('dotenv');
 const cors = require('cors');
 const http = require('http');
 const { Server } = require('socket.io');
-const path = require('path'); // Add path for serving files
+const path = require('path');
 
 // Import local modules
 const connectDB = require('./config/db');
@@ -21,29 +21,36 @@ const app = express();
 // Connect to MongoDB
 connectDB();
 
-// --- CORS CONFIGURATION ---
-// Define the allowed origin for requests
-const allowedOrigin = process.env.CORS_ORIGIN || "https://veridianflux.netlify.app";
+const productionOrigin = "https://veridianflux.netlify.app";
 
 const corsOptions = {
-  origin: allowedOrigin,
-  methods: ["GET", "POST", "PUT", "DELETE"], // Add any other methods your API uses
+  origin: function (origin, callback) {
+    if (process.env.NODE_ENV === 'production') {
+      if (origin === productionOrigin) {
+        callback(null, true);
+      } else {
+        callback(new Error('Not allowed by CORS'));
+      }
+    } else {
+      if (!origin || origin.startsWith('http://localhost') || origin.startsWith('http://127.0.0.1')) {
+        callback(null, true);
+      } else {
+        callback(new Error('Not allowed by CORS'));
+      }
+    }
+  },
+  methods: ["GET", "POST", "PUT", "DELETE"],
 };
 
 // Middleware
-app.use(cors(corsOptions)); // Use the strict CORS options for security
-app.use(express.json());   // Allow the server to accept JSON in the request body
+app.use(cors(corsOptions));
+app.use(express.json());
 
-// --- SOCKET.IO & HTTP SERVER SETUP ---
 const server = http.createServer(app);
 const io = new Server(server, {
-  cors: {
-    origin: allowedOrigin, // Use the same origin for Socket.IO
-    methods: ["GET", "POST"]
-  }
+  cors: corsOptions
 });
 
-// Middleware to make `io` accessible from our controllers
 app.use((req, res, next) => {
   req.io = io;
   next();
@@ -62,16 +69,11 @@ app.use('/api/users', userRoutes);
 app.use('/api/projects', projectRoutes);
 app.use('/api/logs', logRoutes);
 
-// A simple test route to confirm the API is running
 app.get('/', (req, res) => {
   res.send('Veridian Flux API is running...');
 });
 
-// Define the port the server will run on
 const PORT = process.env.PORT || 5001;
-
-// --- START THE SERVER ---
-// This MUST be server.listen to run both Express and Socket.IO
 server.listen(PORT, () => {
   console.log(`🚀 Server is running on port: ${PORT}`);
 });

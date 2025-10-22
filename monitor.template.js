@@ -3,7 +3,7 @@
   // Use a self-invoking function to not pollute the global namespace
   const PulseLog = {};
   let _projectId = null;
-  const API_ENDPOINT = 'http://localhost:5001/api/logs';
+  const API_ENDPOINT = 'https://pulselog-backend.onrender.com/api/logs';
 
   /**
    * Initializes the monitoring script with a specific project ID.

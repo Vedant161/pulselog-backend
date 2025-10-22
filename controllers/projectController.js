@@ -1,4 +1,5 @@
 const Project = require('../models/projectModel');
+const Log = require('../models/logModel');
 const fs = require('fs').promises;
 const path = require('path');
 

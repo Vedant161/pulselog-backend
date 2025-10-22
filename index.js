@@ -25,6 +25,9 @@ const productionOrigin = "https://veridianflux.netlify.app";
 
 const corsOptions = {
   origin: function (origin, callback) {
+    // THIS IS THE MOST IMPORTANT DEBUGGING LINE
+    console.log('--- INCOMING REQUEST ORIGIN:', origin, '---');
+
     if (process.env.NODE_ENV === 'production') {
       if (origin === productionOrigin) {
         callback(null, true);

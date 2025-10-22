@@ -64,4 +64,41 @@ const getProjects = async (req, res) => {
   res.json(projects);
 };
 
-module.exports = { createProject, getProjects, getMonitorScript };
+/**
+ * @desc    Get a single project by ID
+ * @route   GET /api/projects/:projectId
+ * @access  Private
+ */
+const getProjectById = async (req, res) => {
+  const project = await Project.findById(req.params.projectId);
+
+  if (project && project.owner.equals(req.user._id)) {
+    res.json(project);
+  } else {
+    res.status(404).json({ message: 'Project not found' });
+  }
+};
+
+/**
+ * @desc    Delete a project and its logs
+ * @route   DELETE /api/projects/:projectId
+ * @access  Private
+ */
+const deleteProject = async (req, res) => {
+  const project = await Project.findById(req.params.projectId);
+
+  // Security check: Ensure the user owns this project
+  if (project && project.owner.equals(req.user._id)) {
+    // Delete the project itself
+    await Project.findByIdAndDelete(req.params.projectId);
+    
+    // Also delete all logs associated with this project for data integrity
+    await Log.deleteMany({ projectId: req.params.projectId });
+
+    res.json({ message: 'Project and all associated logs have been deleted.' });
+  } else {
+    res.status(404).json({ message: 'Project not found or you do not have permission.' });
+  }
+};
+
+module.exports = { createProject, getProjects, getMonitorScript, getProjectById, deleteProject };

@@ -25,16 +25,18 @@ const productionOrigin = "https://veridianflux.netlify.app";
 
 const corsOptions = {
   origin: function (origin, callback) {
-    // THIS IS THE MOST IMPORTANT DEBUGGING LINE
+    // Optional: Keep this for debugging until you're sure it's fixed
     console.log('--- INCOMING REQUEST ORIGIN:', origin, '---');
 
     if (process.env.NODE_ENV === 'production') {
-      if (origin === productionOrigin) {
-        callback(null, true);
+      // 👇 UPDATE THIS LINE
+      if (!origin || origin === productionOrigin) {
+        callback(null, true); // Allow requests with no origin OR from our live site
       } else {
         callback(new Error('Not allowed by CORS'));
       }
     } else {
+      // Your development logic is already correct
       if (!origin || origin.startsWith('http://localhost') || origin.startsWith('http://127.0.0.1')) {
         callback(null, true);
       } else {
